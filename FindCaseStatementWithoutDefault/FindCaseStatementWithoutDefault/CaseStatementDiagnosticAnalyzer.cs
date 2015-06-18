@@ -27,22 +27,41 @@ namespace FindCaseStatementWithoutDefault
 
         public override void Initialize(AnalysisContext context)
         {
-            // TODO: Consider registering other actions that act on syntax instead of or in addition to symbols
-            context.RegisterSymbolAction(AnalyzeSymbol, SymbolKind.NamedType);
+            context.RegisterSyntaxNodeAction(AnalyzeSwitchStatementWithEnum, SyntaxKind.SwitchStatement);
         }
 
-        private static void AnalyzeSymbol(SymbolAnalysisContext context)
+
+        private void AnalyzeSwitchStatement(SyntaxNodeAnalysisContext obj)
         {
-            // TODO: Replace the following code with your own analysis, generating Diagnostic objects for any issues you find
-            var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
+            var switchStatement = obj.Node as SwitchStatementSyntax;
 
-            // Find just those named type symbols with names containing lowercase letters.
-            if (namedTypeSymbol.Name.ToCharArray().Any(char.IsLower))
+            bool hasDefault = switchStatement.DescendantNodes().OfType<DefaultSwitchLabelSyntax>().Count() > 0;
+
+            if (!hasDefault)
             {
-                // For all such symbols, produce a diagnostic.
-                var diagnostic = Diagnostic.Create(Rule, namedTypeSymbol.Locations[0], namedTypeSymbol.Name);
+                var diagnostic = Diagnostic.Create(Rule, switchStatement.GetLocation(), "switch");
 
-                context.ReportDiagnostic(diagnostic);
+                obj.ReportDiagnostic(diagnostic);
+            }
+        }
+
+        private void AnalyzeSwitchStatementWithEnum(SyntaxNodeAnalysisContext swtichStatementNode)
+        {
+            var switchStatement = swtichStatementNode.Node as SwitchStatementSyntax;
+
+            var switchVariableIdentifier = switchStatement.ChildNodes().OfType<IdentifierNameSyntax>().First();
+
+            var switchVariableType = swtichStatementNode.SemanticModel.GetTypeInfo(switchVariableIdentifier);
+
+            var isEnum = switchVariableType.Type.TypeKind == TypeKind.Enum;
+
+            bool hasDefault = switchStatement.DescendantNodes().OfType<DefaultSwitchLabelSyntax>().Count() > 0;
+
+            if (!hasDefault && isEnum)
+            {
+                var diagnostic = Diagnostic.Create(Rule, switchStatement.GetLocation(), "switch");
+
+                swtichStatementNode.ReportDiagnostic(diagnostic);
             }
         }
     }
