@@ -53,6 +53,11 @@ namespace FindCaseStatementWithoutDefault
 
             var switchVariableType = swtichStatementNode.SemanticModel.GetTypeInfo(switchVariableIdentifier);
 
+            if(switchVariableType.Type == null)
+            {
+                return;
+            }
+
             var isEnum = switchVariableType.Type.TypeKind == TypeKind.Enum;
 
             bool hasDefault = switchStatement.DescendantNodes().OfType<DefaultSwitchLabelSyntax>().Count() > 0;
